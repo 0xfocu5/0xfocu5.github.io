@@ -241,7 +241,7 @@ hr:before,
   --btn-color: #fff;
   --btn-bg: #49b1f5;
   --text-bg-hover: #49b1f5;
-  --light-grey: #1f2d3d;
+  --light-grey: #fff;
   --white: #fff;
   --text-highlight-color: #1f2d3d;
   --blockquote-color: #6a737d;
@@ -3000,11 +3000,11 @@ blockquote footer cite:before {
 #footer-wrap {
   position: relative;
   padding: 2rem 1rem;
-  color: var(--light-grey);
+  color: var(--grey);
   text-align: center;
 }
 #footer-wrap a {
-  color: var(--light-grey);
+  color: var(--grey);
 }
 #footer-wrap a:hover {
   text-decoration: underline;
@@ -3277,8 +3277,8 @@ _:future,
   top: -62px;
   z-index: 91;
   background: rgba(255,255,255,0.8);
-  -webkit-box-shadow: 0 5px 6px -5px rgba(31,45,61,0.6);
-  box-shadow: 0 5px 6px -5px rgba(31,45,61,0.6);
+  -webkit-box-shadow: 0 5px 6px -5px rgba(255,255,255,0.6);
+  box-shadow: 0 5px 6px -5px rgba(255,255,255,0.6);
   -webkit-transition: -webkit-transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
   -moz-transition: -moz-transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
   -o-transition: -o-transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
@@ -5260,7 +5260,7 @@ blockquote.pullquote.right {
   position: absolute;
   top: 0.8rem;
   right: 1rem;
-  color: #1f2d3d;
+  color: #fff;
   font-size: 1.4em;
   line-height: 1;
   cursor: pointer;
