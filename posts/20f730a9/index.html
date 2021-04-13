@@ -1,0 +1,258 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AFL 变异原理 | 0xfocu5's blog</title><meta name="description" content="关于AFL变异的学习和总结。"><meta name="keywords" content="AFL,Fuzz"><meta name="author" content="燕乘风"><meta name="copyright" content="燕乘风"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="shortcut icon" href="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg"><link rel="canonical" href="https://0xfocu5.github.io/posts/20f730a9/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><meta property="og:type" content="article"><meta property="og:title" content="AFL 变异原理"><meta property="og:url" content="https://0xfocu5.github.io/posts/20f730a9/"><meta property="og:site_name" content="0xfocu5's blog"><meta property="og:description" content="关于AFL变异的学习和总结。"><meta property="og:image" content="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg"><meta property="article:published_time" content="2021-04-12T16:00:00.000Z"><meta property="article:modified_time" content="2021-04-13T11:02:30.465Z"><meta name="twitter:card" content="summary"><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  hexoversion: '5.2.0',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  bookmark: {
+    message_prev: 'Snackbar.bookmark.message_prev',
+    message_next: 'Snackbar.bookmark.message_next'
+  },
+  runtime: 'days',
+  date_suffix: {"one_hour":"date_suffix.one_hour","hours":"date_suffix.hours","day":"天前"},
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: undefined,
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+    },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2021-04-13 19:02:30'
+}</script><noscript><style type="text/css">
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+  }
+}
+
+var autoChangeMode = '1'
+var t = saveToLocal.get('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (saveToLocal.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><meta name="generator" content="Hexo 5.2.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://focu5.oss-cn-beijing.aliyuncs.com/img/20200714224051.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">Articles</div><div class="length_num">11</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">Tags</div><div class="length_num">6</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">Categories</div><div class="length_num">6</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tages</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Links</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div></div></div><div id="body-wrap"><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">Catalog</div><div class="sidebar-toc__progress"><span class="progress-notice">You've read</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E7%AE%80%E8%BF%B0"><span class="toc-number">1.</span> <span class="toc-text">简述</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#bitflip"><span class="toc-number">2.</span> <span class="toc-text">bitflip</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%87%AA%E5%8A%A8%E6%A3%80%E6%B5%8Btoken"><span class="toc-number">2.1.</span> <span class="toc-text">自动检测token</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%94%9F%E6%88%90effector-map"><span class="toc-number">2.2.</span> <span class="toc-text">生成effector map</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#arithmetic"><span class="toc-number">3.</span> <span class="toc-text">arithmetic</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#interest"><span class="toc-number">4.</span> <span class="toc-text">interest</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#dictionary"><span class="toc-number">5.</span> <span class="toc-text">dictionary</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#user-extras-over"><span class="toc-number">5.1.</span> <span class="toc-text">user extras (over)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#user-extras-insert"><span class="toc-number">5.2.</span> <span class="toc-text">user extras (insert)</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#auto-extras-over"><span class="toc-number">5.3.</span> <span class="toc-text">auto extras (over)</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#havoc"><span class="toc-number">6.</span> <span class="toc-text">havoc</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#splice"><span class="toc-number">7.</span> <span class="toc-text">splice</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#cycle"><span class="toc-number">8.</span> <span class="toc-text">cycle</span></a></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">0xfocu5's blog</a></span><span id="menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tages</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Links</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div><span class="close" id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">AFL 变异原理</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2021-04-12T16:00:00.000Z" title="发表于 2021-04-13 00:00:00">2021-04-13</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-04-13T11:02:30.465Z" title="更新于 2021-04-13 19:02:30">2021-04-13</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Notes/">Notes</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Notes/Fuzz/">Fuzz</a></span></div><div class="meta-secondline"> </div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><p>参考：<a target="_blank" rel="noopener" href="http://rk700.github.io/2018/01/04/afl-mutations/">http://rk700.github.io/2018/01/04/afl-mutations/</a></p>
+<h1 id="简述"><a href="#简述" class="headerlink" title="简述"></a>简述</h1><p>AFL维护了一个队列(queue)，每次从这个队列中取出一个文件，对其进行大量变异，并检查运行后是否会引起目标崩溃、发现新路径等结果。变异的主要类型如下：</p>
+<ul>
+<li>bitflip，按位翻转，1变为0，0变为1</li>
+<li>arithmetic，整数加/减算术运算</li>
+<li>interest，把一些特殊内容替换到原文件中</li>
+<li>dictionary，把自动生成或用户提供的token替换/插入到原文件中</li>
+<li>havoc，中文意思是“大破坏”，此阶段会对原文件进行大量变异，具体见下文</li>
+<li>splice，中文意思是“绞接”，此阶段会将两个文件拼接起来得到一个新的文件</li>
+</ul>
+<p>其中，前四项bitflip, arithmetic, interest, dictionary是非dumb mode（<code>-d</code>）和主fuzzer（<code>-M</code>）会进行的操作，由于其变异方式没有随机性，所以也称为deterministic fuzzing；havoc和splice则存在随机性，是所有状况的fuzzer（是否dumb mode、主从fuzzer）都会执行的变异。</p>
+<p>以下将对这些变异类型进行具体介绍。</p>
+<h1 id="bitflip"><a href="#bitflip" class="headerlink" title="bitflip"></a>bitflip</h1><p>拿到一个原始文件，打头阵的就是bitflip，而且还会根据翻转量/步长进行多种不同的翻转，按照顺序依次为：</p>
+<ul>
+<li>bitflip 1/1，每次翻转<strong>1</strong>个bit，按照每<strong>1</strong>个bit的步长从头开始</li>
+<li>bitflip 2/1，每次翻转相邻的<strong>2</strong>个bit，按照每<strong>1</strong>个bit的步长从头开始</li>
+<li>bitflip 4/1，每次翻转相邻的<strong>4</strong>个bit，按照每<strong>1</strong>个bit的步长从头开始</li>
+<li>bitflip 8/8，每次翻转相邻的<strong>8</strong>个bit，按照每<strong>8</strong>个bit的步长从头开始，即依次对每个byte做翻转</li>
+<li>bitflip 16/8，每次翻转相邻的<strong>16</strong>个bit，按照每<strong>8</strong>个bit的步长从头开始，即依次对每个word做翻转</li>
+<li>bitflip 32/8，每次翻转相邻的<strong>32</strong>个bit，按照每<strong>8</strong>个bit的步长从头开始，即依次对每个dword做翻转</li>
+</ul>
+<p>作为精妙构思的fuzzer，AFL不会放过每一个获取文件信息的机会。这一点在bitflip过程中就体现的淋漓尽致。具体地，在上述过程中，AFL巧妙地嵌入了一些对文件格式的启发式判断。</p>
+<h2 id="自动检测token"><a href="#自动检测token" class="headerlink" title="自动检测token"></a>自动检测token</h2><p>在进行bitflip 1/1变异时，对于每个byte的最低位(least significant bit)翻转还进行了额外的处理：如果连续多个bytes的最低位被翻转后，程序的执行路径都未变化，而且与原始执行路径不一致(检测程序执行路径的方式可见上篇文章中<a target="_blank" rel="noopener" href="https://rk700.github.io/2017/12/28/afl-internals/#%E5%88%86%E6%94%AF%E4%BF%A1%E6%81%AF%E7%9A%84%E5%88%86%E6%9E%90">“分支信息的分析”</a>一节)，那么就把这一段连续的bytes判断是一条token。</p>
+<p>例如，PNG文件中用<code>IHDR</code>作为起始块的标识，那么就会存在类似于以下的内容：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">........IHDR........</span><br></pre></td></tr></table></figure>
+
+<p>当翻转到字符<code>I</code>的最高位时，因为<code>IHDR</code>被破坏，此时程序的执行路径肯定与处理正常文件的路径是不同的；随后，在翻转接下来3个字符的最高位时，<code>IHDR</code>标识同样被破坏，程序应该会采取同样的执行路径。由此，AFL就判断得到一个可能的token：<code>IHDR</code>，并将其记录下来为后面的变异提供备选。</p>
+<p>AFL采取的这种方式是非常巧妙的：就本质而言，这实际上是对每个byte进行修改并检查执行路径；但集成到bitflip后，就不需要再浪费额外的执行资源了。此外，为了控制这样自动生成的token的大小和数量，AFL还在<code>config.h</code>中通过宏定义了限制：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;* Length limits for auto-detected dictionary tokens: *&#x2F;</span><br><span class="line"></span><br><span class="line">#define MIN_AUTO_EXTRA 3 #define MAX_AUTO_EXTRA 32 </span><br><span class="line">&#x2F;* Maximum number of auto-extracted dictionary tokens to actually use in fuzzing (first value), and to keep in memory as candidates. The latter should be much higher than the former. *&#x2F;</span><br><span class="line"></span><br><span class="line">#define USE_AUTO_EXTRAS 10 </span><br><span class="line">#define MAX_AUTO_EXTRAS (USE_AUTO_EXTRAS * 10)</span><br></pre></td></tr></table></figure>
+
+<p>对于一些文件来说，我们已知其格式中出现的token长度不会超过4，那么我们就可以修改<code>MAX_AUTO_EXTRA</code>为4并重新编译AFL，以排除一些明显不会是token的情况。遗憾的是，这些设置是通过宏定义来实现，所以不能做到运行时指定，每次修改后必须重新编译AFL。</p>
+<h2 id="生成effector-map"><a href="#生成effector-map" class="headerlink" title="生成effector map"></a>生成effector map</h2><p>在进行bitflip 8/8变异时，AFL还生成了一个非常重要的信息：effector map。这个effector map几乎贯穿了整个deterministic fuzzing的始终。</p>
+<p>具体地，在对每个byte进行翻转时，如果其造成执行路径与原始路径不一致，就将该byte在effector map中标记为1，即“有效”的，否则标记为0，即“无效”的。</p>
+<p>这样做的逻辑是：如果一个byte完全翻转，都无法带来执行路径的变化，那么这个byte很有可能是属于”data”，而非”metadata”（例如size, flag等），对整个fuzzing的意义不大。所以，在随后的一些变异中，会参考effector map，跳过那些“无效”的byte，从而节省了执行资源。</p>
+<p>由此，通过极小的开销（没有增加额外的执行次数），AFL又一次对文件格式进行了启发式的判断。看到这里，不得不叹服于AFL实现上的精妙。</p>
+<p>不过，在某些情况下并不会检测有效字符。第一种情况就是dumb mode或者从fuzzer，此时文件所有的字符都有可能被变异。第二、第三种情况与文件本身有关：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;* Minimum input file length at which the effector logic kicks in: *&#x2F;</span><br><span class="line"></span><br><span class="line">#define EFF_MIN_LEN 128 </span><br><span class="line">&#x2F;* Maximum effector density past which everything is just fuzzed unconditionally (%): *&#x2F;</span><br><span class="line"></span><br><span class="line">#define EFF_MAX_PERC 90</span><br></pre></td></tr></table></figure>
+
+<p>即默认情况下，如果文件小于128 bytes，那么所有字符都是“有效”的；同样地，如果AFL发现一个文件有超过90%的bytes都是“有效”的，那么也不差那10%了，大笔一挥，干脆把所有字符都划归为“有效”。</p>
+<h1 id="arithmetic"><a href="#arithmetic" class="headerlink" title="arithmetic"></a>arithmetic</h1><p>在bitflip变异全部进行完成后，便进入下一个阶段：arithmetic。与bitflip类似的是，arithmetic根据目标大小的不同，也分为了多个子阶段：</p>
+<ul>
+<li>arith 8/8，每次对<strong>8</strong>个bit进行加减运算，按照每<strong>8</strong>个bit的步长从头开始，即对文件的每个byte进行整数加减变异</li>
+<li>arith 16/8，每次对<strong>16</strong>个bit进行加减运算，按照每<strong>8</strong>个bit的步长从头开始，即对文件的每个word进行整数加减变异</li>
+<li>arith 32/8，每次对<strong>32</strong>个bit进行加减运算，按照每<strong>8</strong>个bit的步长从头开始，即对文件的每个dword进行整数加减变异</li>
+</ul>
+<p>加减变异的上限，在<code>config.h</code>中的宏<code>ARITH_MAX</code>定义，默认为35。所以，对目标整数会进行+1, +2, …, +35, -1, -2, …, -35的变异。特别地，由于整数存在大端序和小端序两种表示方式，AFL会贴心地对这两种整数表示方式都进行变异。</p>
+<p>此外，AFL还会智能地跳过某些arithmetic变异。第一种情况就是前面提到的effector map：如果一个整数的所有bytes都被判断为“无效”，那么就跳过对整数的变异。第二种情况是之前bitflip已经生成过的变异：如果加/减某个数后，其效果与之前的某种bitflip相同，那么这次变异肯定在上一个阶段已经执行过了，此次便不会再执行。</p>
+<h1 id="interest"><a href="#interest" class="headerlink" title="interest"></a>interest</h1><p>下一个阶段是interest，具体可分为：</p>
+<ul>
+<li>interest 8/8，每次对<strong>8</strong>个bit进替换，按照每<strong>8</strong>个bit的步长从头开始，即对文件的每个byte进行替换</li>
+<li>interest 16/8，每次对<strong>16</strong>个bit进替换，按照每<strong>8</strong>个bit的步长从头开始，即对文件的每个word进行替换</li>
+<li>interest 32/8，每次对<strong>32</strong>个bit进替换，按照每<strong>8</strong>个bit的步长从头开始，即对文件的每个dword进行替换</li>
+</ul>
+<p>而用于替换的”interesting values”，是AFL预设的一些比较特殊的数：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">static s8  interesting_8[]  &#x3D; &#123; INTERESTING_8 &#125;;</span><br><span class="line">static s16 interesting_16[] &#x3D; &#123; INTERESTING_8, INTERESTING_16 &#125;;</span><br><span class="line">static s32 interesting_32[] &#x3D; &#123; INTERESTING_8, INTERESTING_16, INTERESTING_32 &#125;;</span><br></pre></td></tr></table></figure>
+
+<p>这些数的定义在<code>config.h</code>文件中：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;* List of interesting values to use in fuzzing. *&#x2F;</span><br><span class="line"></span><br><span class="line">#define INTERESTING_8 \ -128, &#x2F;* Overflow signed 8-bit when decremented *&#x2F; \ -1, &#x2F;* *&#x2F; \ 0, &#x2F;* *&#x2F; \ 1, &#x2F;* *&#x2F; \ 16, &#x2F;* One-off with common buffer size *&#x2F; \ 32, &#x2F;* One-off with common buffer size *&#x2F; \ 64, &#x2F;* One-off with common buffer size *&#x2F; \ 100, &#x2F;* One-off with common buffer size *&#x2F; \ 127 &#x2F;* Overflow signed 8-bit when incremented *&#x2F; </span><br><span class="line">#define INTERESTING_16 \ -32768, &#x2F;* Overflow signed 16-bit when decremented *&#x2F; \ -129, &#x2F;* Overflow signed 8-bit *&#x2F; \ 128, &#x2F;* Overflow signed 8-bit *&#x2F; \ 255, &#x2F;* Overflow unsig 8-bit when incremented *&#x2F; \ 256, &#x2F;* Overflow unsig 8-bit *&#x2F; \ 512, &#x2F;* One-off with common buffer size *&#x2F; \ 1000, &#x2F;* One-off with common buffer size *&#x2F; \ 1024, &#x2F;* One-off with common buffer size *&#x2F; \ 4096, &#x2F;* One-off with common buffer size *&#x2F; \ 32767 &#x2F;* Overflow signed 16-bit when incremented *&#x2F; </span><br><span class="line">#define INTERESTING_32 \ -2147483648LL, &#x2F;* Overflow signed 32-bit when decremented *&#x2F; \ -100663046, &#x2F;* Large negative number (endian-agnostic) *&#x2F; \ -32769, &#x2F;* Overflow signed 16-bit *&#x2F; \ 32768, &#x2F;* Overflow signed 16-bit *&#x2F; \ 65535, &#x2F;* Overflow unsig 16-bit when incremented *&#x2F; \ 65536, &#x2F;* Overflow unsig 16 bit *&#x2F; \ 100663045, &#x2F;* Large positive number (endian-agnostic) *&#x2F; \ 2147483647 &#x2F;* Overflow signed 32-bit when incremented *&#x2F;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到，用于替换的基本都是可能会造成溢出的数。</p>
+<p>与之前类似，effector map仍然会用于判断是否需要变异；此外，如果某个interesting value，是可以通过bitflip或者arithmetic变异达到，那么这样的重复性变异也是会跳过的。</p>
+<h1 id="dictionary"><a href="#dictionary" class="headerlink" title="dictionary"></a>dictionary</h1><p>进入到这个阶段，就接近deterministic fuzzing的尾声了。具体有以下子阶段：</p>
+<ul>
+<li>user extras (over)，从头开始，将<strong>用户提供</strong>的tokens依次<strong>替换</strong>到原文件中</li>
+<li>user extras (insert)，从头开始，将<strong>用户提供</strong>的tokens依次<strong>插入</strong>到原文件中</li>
+<li>auto extras (over)，从头开始，将<strong>自动检测</strong>的tokens依次<strong>替换</strong>到原文件中</li>
+</ul>
+<p>其中，用户提供的tokens，是在词典文件中设置并通过<code>-x</code>选项指定的，如果没有则跳过相应的子阶段。</p>
+<h2 id="user-extras-over"><a href="#user-extras-over" class="headerlink" title="user extras (over)"></a>user extras (over)</h2><p>对于用户提供的tokens，AFL先按照长度从小到大进行排序。这样做的好处是，只要按照顺序使用排序后的tokens，那么后面的token不会比之前的短，从而每次覆盖替换后不需要再恢复到原状。</p>
+<p>随后，AFL会检查tokens的数量，如果数量大于预设的<code>MAX_DET_EXTRAS</code>（默认值为200），那么对每个token会根据概率来决定是否进行替换：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">for (j &#x3D; 0; j &lt; extras_cnt; j++) &#123;</span><br><span class="line"></span><br><span class="line">  &#x2F;* Skip extras probabilistically if extras_cnt &gt; MAX_DET_EXTRAS. Also skip them if there&#39;s no room to insert the payload, if the token is redundant, or if its entire span has no bytes set in the effector map. *&#x2F;</span><br><span class="line"></span><br><span class="line">  if ((extras_cnt &gt; MAX_DET_EXTRAS &amp;&amp; UR(extras_cnt) &gt;&#x3D; MAX_DET_EXTRAS) ||</span><br><span class="line">      extras[j].len &gt; len - i ||</span><br><span class="line">      !memcmp(extras[j].data, out_buf + i, extras[j].len) ||</span><br><span class="line">      !memchr(eff_map + EFF_APOS(i), 1, EFF_SPAN_ALEN(i, extras[j].len))) &#123;</span><br><span class="line"></span><br><span class="line">    stage_max--;</span><br><span class="line">    continue;</span><br><span class="line"></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里的<code>UR(extras_cnt)</code>是运行时生成的一个<code>0</code>到<code>extras_cnt</code>之间的随机数。所以，如果用户词典中一共有400个tokens，那么每个token就有<code>200/400=50%</code>的概率执行替换变异。我们可以修改<code>MAX_DET_EXTRAS</code>的大小来调整这一概率。</p>
+<p>由上述代码也可以看到，effector map在这里同样被使用了：如果要替换的目标bytes全部是“无效”的，那么就跳过这一段，对下一段目标执行替换。</p>
+<h2 id="user-extras-insert"><a href="#user-extras-insert" class="headerlink" title="user extras (insert)"></a>user extras (insert)</h2><p>这一子阶段是对用户提供的tokens执行插入变异。不过与上一个子阶段不同的是，此时并没有对tokens数量的限制，所以全部tokens都会从原文件的第1个byte开始，依次向后插入；此外，由于原文件并未发生替换，所以effector map不会被使用。</p>
+<p>这一子阶段最特别的地方，就是变异不能简单地恢复。之前每次变异完，在变异位置处简单取逆即可，例如bitflip后，再进行一次同样的bitflip就恢复为原文件。正因为如此，之前的变异总体运算量并不大。</p>
+<p>但是，对于<strong>插入</strong>这种变异方式，恢复起来则复杂的多，所以AFL采取的方式是：将原文件分割为插入前和插入后的部分，再加上插入的内容，将这3部分依次复制到目标缓冲区中（当然这里还有一些小的优化，具体可阅读代码）。而对每个token的每处插入，都需要进行上述过程。所以，如果用户提供了大量tokens，或者原文件很大，那么这一阶段的运算量就会非常的多。直观表现上，就是AFL的执行状态栏中，”user extras (insert)”的总执行量很大，执行时间很长。如果出现了这种情况，那么就可以考虑适当删减一些tokens。</p>
+<h2 id="auto-extras-over"><a href="#auto-extras-over" class="headerlink" title="auto extras (over)"></a>auto extras (over)</h2><p>这一项与”user extras (over)”很类似，区别在于，这里的tokens是最开始bitflip阶段自动生成的。另外，自动生成的tokens总量会由<code>USE_AUTO_EXTRAS</code>限制（默认为10）。</p>
+<h1 id="havoc"><a href="#havoc" class="headerlink" title="havoc"></a>havoc</h1><p>对于非dumb mode的主fuzzer来说，完成了上述deterministic fuzzing后，便进入了充满随机性的这一阶段；对于dumb mode或者从fuzzer来说，则是直接从这一阶段开始。</p>
+<p>havoc，顾名思义，是充满了各种随机生成的变异，是对原文件的“大破坏”。具体来说，havoc包含了对原文件的多轮变异，每一轮都是将多种方式组合（stacked）而成：</p>
+<ul>
+<li>随机选取某个bit进行翻转</li>
+<li>随机选取某个byte，将其设置为随机的interesting value</li>
+<li>随机选取某个word，并随机选取大、小端序，将其设置为随机的interesting value</li>
+<li>随机选取某个dword，并随机选取大、小端序，将其设置为随机的interesting value</li>
+<li>随机选取某个byte，对其减去一个随机数</li>
+<li>随机选取某个byte，对其加上一个随机数</li>
+<li>随机选取某个word，并随机选取大、小端序，对其减去一个随机数</li>
+<li>随机选取某个word，并随机选取大、小端序，对其加上一个随机数</li>
+<li>随机选取某个dword，并随机选取大、小端序，对其减去一个随机数</li>
+<li>随机选取某个dword，并随机选取大、小端序，对其加上一个随机数</li>
+<li>随机选取某个byte，将其设置为随机数</li>
+<li>随机删除一段bytes</li>
+<li>随机选取一个位置，插入一段随机长度的内容，其中75%的概率是插入原文中随机位置的内容，25%的概率是插入一段随机选取的数</li>
+<li>随机选取一个位置，替换为一段随机长度的内容，其中75%的概率是替换成原文中随机位置的内容，25%的概率是替换成一段随机选取的数</li>
+<li>随机选取一个位置，用随机选取的token（用户提供的或自动生成的）替换</li>
+<li>随机选取一个位置，用随机选取的token（用户提供的或自动生成的）插入</li>
+</ul>
+<p>怎么样，看完上面这么多的“随机”，有没有觉得晕？还没完，AFL会生成一个随机数，作为变异组合的数量，并根据这个数量，每次从上面那些方式中随机选取一个（可以参考高中数学的有放回摸球），依次作用到文件上。如此这般丧心病狂的变异，原文件就大概率面目全非了，而这么多的随机性，也就成了fuzzing过程中的不可控因素，即所谓的“看天吃饭”了。</p>
+<h1 id="splice"><a href="#splice" class="headerlink" title="splice"></a>splice</h1><p>历经了如此多的考验，文件的变异也进入到了最后的阶段：splice。如其意思所说，splice是将两个seed文件拼接得到新的文件，并对这个新文件继续执行havoc变异。</p>
+<p>具体地，AFL在seed文件队列中随机选取一个，与当前的seed文件做对比。如果两者差别不大，就再重新随机选一个；如果两者相差比较明显，那么就随机选取一个位置，将两者都分割为头部和尾部。最后，将当前文件的头部与随机文件的尾部拼接起来，就得到了新的文件。在这里，AFL还会过滤掉拼接文件未发生变化的情况。</p>
+<h1 id="cycle"><a href="#cycle" class="headerlink" title="cycle"></a>cycle</h1><p>于是乎，一个seed文件，在上述的全部变异都执行完成后，就…抱歉，还没结束。</p>
+<p>上面的变异完成后，AFL会对文件队列的下一个进行变异处理。当队列中的全部文件都变异测试后，就完成了一个”cycle”，这个就是AFL状态栏右上角的”cycles done”。而正如cycle的意思所说，整个队列又会从第一个文件开始，再次进行变异，不过与第一次变异不同的是，这一次就不需要再进行deterministic fuzzing了。</p>
+<p>当然，如果用户不停止AFL，那么seed文件将会一遍遍的变异下去。</p>
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">燕乘风</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://0xfocu5.github.io/posts/20f730a9/">https://0xfocu5.github.io/posts/20f730a9/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://0xfocu5.github.io" target="_blank">0xfocu5's blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/AFL/">AFL</a><a class="post-meta__tags" href="/tags/Fuzz/">Fuzz</a></div><div class="post_share"><div class="social-share" data-image="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/posts/53fcd800/"><img class="next-cover" data-lazy-src="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">AFL细节小计</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> comment</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2021 By 燕乘风</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">search</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="noopener" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'P9GVfs1MeERE7LeK2DFsJXmn-gzGzoHsz',
+      appKey: 'hzbjuPyWPjwk5HpiLPf3csE9',
+      placeholder: 'Please leave your footprints',
+      avatar: 'monsterid',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'en',
+      recordIP: false,
+      serverURLs: '',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+    });
+    if ('nick,mail') { valine.config.requiredFields= 'nick,mail'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !false) {
+  if (false) btf.loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script src="/js/focu5.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="100" mobile="true" src="/js/third-party/canvas-nest.js"></script><script src="/js/third-party/click_heart.js" async="async"></script></div></body></html>
