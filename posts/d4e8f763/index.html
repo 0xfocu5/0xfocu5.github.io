@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chromium 基础架构 | 0xfocu5's blog</title><meta name="description" content="Chromium 基础架构学习记录。"><meta name="keywords" content="Chromium"><meta name="author" content="燕乘风"><meta name="copyright" content="燕乘风"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><link rel="shortcut icon" href="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg"><link rel="canonical" href="https://0xfocu5.github.io/posts/d4e8f763/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><meta property="og:type" content="article"><meta property="og:title" content="Chromium 基础架构"><meta property="og:url" content="https://0xfocu5.github.io/posts/d4e8f763/"><meta property="og:site_name" content="0xfocu5's blog"><meta property="og:description" content="Chromium 基础架构学习记录。"><meta property="og:image" content="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg"><meta property="article:published_time" content="2021-07-26T16:00:00.000Z"><meta property="article:modified_time" content="2021-08-13T03:06:22.968Z"><meta name="twitter:card" content="summary"><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  hexoversion: '5.2.0',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容：${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  bookmark: {
+    message_prev: 'Snackbar.bookmark.message_prev',
+    message_next: 'Snackbar.bookmark.message_next'
+  },
+  runtime: 'days',
+  date_suffix: {"one_hour":"date_suffix.one_hour","hours":"date_suffix.hours","day":"天前"},
+  copyright: undefined,
+  ClickShowText: undefined,
+  medium_zoom: false,
+  fancybox: true,
+  Snackbar: undefined,
+  justifiedGallery: {
+    js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+    css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+  },
+  baiduPush: false,
+  isPhotoFigcaption: false,
+  islazyload: true,
+  isanchor: false
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+    },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isSidebar: true,
+  postUpdate: '2021-08-13 11:06:22'
+}</script><noscript><style type="text/css">
+#nav {
+  opacity: 1
+}
+.justified-gallery img {
+  opacity: 1
+}
+</style></noscript><script>var activateDarkMode = function () {
+  document.documentElement.setAttribute('data-theme', 'dark')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+  }
+}
+var activateLightMode = function () {
+  document.documentElement.setAttribute('data-theme', 'light')
+  if (document.querySelector('meta[name="theme-color"]') !== null) {
+    document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+  }
+}
+
+var autoChangeMode = 'false'
+var t = saveToLocal.get('theme')
+if (autoChangeMode === '1') {
+  var isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+  var isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+  var isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+  var hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+
+  if (t === undefined) {
+    if (isLightMode) activateLightMode()
+    else if (isDarkMode) activateDarkMode()
+    else if (isNotSpecified || hasNoSupport) {
+      var now = new Date()
+      var hour = now.getHours()
+      var isNight = hour <= 6 || hour >= 18
+      isNight ? activateDarkMode() : activateLightMode()
+    }
+    window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+      if (saveToLocal.get('theme') === undefined) {
+        e.matches ? activateDarkMode() : activateLightMode()
+      }
+    })
+  } else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else if (autoChangeMode === '2') {
+  now = new Date()
+  hour = now.getHours()
+  isNight = hour <= 6 || hour >= 18
+  if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+  else if (t === 'light') activateLightMode()
+  else activateDarkMode()
+} else {
+  if (t === 'dark') activateDarkMode()
+  else if (t === 'light') activateLightMode()
+}</script><meta name="generator" content="Hexo 5.2.0"></head><body><div id="mobile-sidebar"><div id="menu_mask"></div><div id="mobile-sidebar-menus"><div class="mobile_author_icon"><img class="avatar-img" data-lazy-src="https://focu5.oss-cn-beijing.aliyuncs.com/img/20200714224051.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="mobile_post_data"><div class="mobile_data_item is-center"><div class="mobile_data_link"><a href="/archives/"><div class="headline">Articles</div><div class="length_num">20</div></a></div></div><div class="mobile_data_item is-center">      <div class="mobile_data_link"><a href="/tags/"><div class="headline">Tags</div><div class="length_num">11</div></a></div></div><div class="mobile_data_item is-center">     <div class="mobile_data_link"><a href="/categories/"><div class="headline">Categories</div><div class="length_num">15</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tages</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Links</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div></div></div><div id="body-wrap"><div id="sidebar"><i class="fas fa-arrow-right on" id="toggle-sidebar"></i><div class="sidebar-toc"><div class="sidebar-toc__title">Catalog</div><div class="sidebar-toc__progress"><span class="progress-notice">You've read</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar">     </div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%A4%9A%E8%BF%9B%E7%A8%8B%E6%9E%B6%E6%9E%84"><span class="toc-number">1.</span> <span class="toc-text">多进程架构</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Managing-render-processes"><span class="toc-number">1.1.</span> <span class="toc-text">Managing render processes</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Managing-views"><span class="toc-number">1.2.</span> <span class="toc-text">Managing views</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%BB%84%E4%BB%B6%E4%B8%8E%E6%8E%A5%E5%8F%A3"><span class="toc-number">1.3.</span> <span class="toc-text">组件与接口</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%85%B1%E4%BA%AB%E6%B8%B2%E6%9F%93%E8%BF%87%E7%A8%8B"><span class="toc-number">1.4.</span> <span class="toc-text">共享渲染过程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%A3%80%E6%B5%8B-Crash-OR-%E5%BC%82%E5%B8%B8%E6%B8%B2%E6%9F%93"><span class="toc-number">1.5.</span> <span class="toc-text">检测 Crash OR 异常渲染</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Sandboxing-the-renderer"><span class="toc-number">1.6.</span> <span class="toc-text">Sandboxing the renderer</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.7.</span> <span class="toc-text">参考</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E6%98%BE%E7%A4%BA%E7%BD%91%E9%A1%B5"><span class="toc-number">2.</span> <span class="toc-text">如何显示网页</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BA%94%E7%94%A8%E6%A6%82%E5%BF%B5%E5%B1%82"><span class="toc-number">2.1.</span> <span class="toc-text">应用概念层</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#The-render-process"><span class="toc-number">2.2.</span> <span class="toc-text">The render process</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Threads-in-the-renderer"><span class="toc-number">2.2.1.</span> <span class="toc-text">Threads in the renderer</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#The-browser-process"><span class="toc-number">2.3.</span> <span class="toc-text">The browser process</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Low-level-browser-process-objects"><span class="toc-number">2.3.1.</span> <span class="toc-text">Low-level browser process objects</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#High-level-browser-process-objects"><span class="toc-number">2.3.2.</span> <span class="toc-text">High-level browser process objects</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83-1"><span class="toc-number">2.4.</span> <span class="toc-text">参考</span></a></li></ol></li></ol></div></div></div><header class="post-bg" id="page-header" style="background-image: url(https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">0xfocu5's blog</a></span><span id="menus"><div id="search_button"><a class="site-page social-icon search"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tages</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> Links</span></a></div><div class="menus_item"><a class="site-page" href="/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div><span class="close" id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></span></span></nav><div id="post-info"><div id="post-title"><div class="posttitle">Chromium 基础架构</div></div><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2021-07-26T16:00:00.000Z" title="发表于 2021-07-27 00:00:00">2021-07-27</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-08-13T03:06:22.968Z" title="更新于 2021-08-13 11:06:22">2021-08-13</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Chromium/">Chromium</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Chromium/Architecture/">Architecture</a></span></div><div class="meta-secondline"> </div></div></div></header><main class="layout_post" id="content-inner"><article id="post"><div class="post-content" id="article-container"><h1 id="多进程架构"><a href="#多进程架构" class="headerlink" title="多进程架构"></a>多进程架构</h1><ul>
+<li><p>Chromium 的每个标签页都是一个独立的进程，为了确保安全，Chromium 会限制每个渲染引擎彼此之间的访问权限，以及他们访问系统其他资源的权限。</p>
+</li>
+<li><p>运行 UI 和管理 Tab/Plugin 的主进程称为”浏览器进程” 或 “浏览器（Browser）”，标签页相关的进程被称作”渲染线程”或”渲染器（renderer）”</p>
+</li>
+<li><p>renderer 使用 Blink 开源引擎来实现解析和 HTML 布局</p>
+  <img src= "https://i.loli.net/2020/07/14/shCfncNLw9axrt8.gif" data-lazy-src="https://focu5.oss-accelerate.aliyuncs.com/blog/20210723133050.png" style="zoom:67%;" />
+
+</li>
+</ul>
+<h2 id="Managing-render-processes"><a href="#Managing-render-processes" class="headerlink" title="Managing render processes"></a>Managing render processes</h2><p>每个渲染进程有一个全局的 RenderProcess 对象，该对象管理渲染进程与父浏览器进程之间的通信，并维护全局状态。浏览器为每个渲染进程维护一个对应的RenderViewHost，用来管理浏览器状态，并与渲染器通信。浏览器与渲染器使用<a target="_blank" rel="noopener" href="https://ahangchen.gitbooks.io/chromium_doc_zh/content/zh/General_Architecture/Inter-process_Communication.html">Chromium’s IPC system</a>进行通信。</p>
+<h2 id="Managing-views"><a href="#Managing-views" class="headerlink" title="Managing views"></a>Managing views</h2><p>每个渲染进程都有一个或多个 RenderView 对象，由 <code>RenderProcess</code> 管理(它与标签页的内容相关)。相应的<code>RenderProcessHost</code>维护一个与渲染器中每个view相关的<code>RenderViewHost</code>。每个view被赋予一个view ID，以区分同一个渲染器中的不同view。这些 ID 在一个渲染器中是唯一的，但在浏览器中不是唯一的，所以区分一个view需要一个RenderProcessHost和一个view ID。</p>
+<p>浏览器与特定标签页之间的通信是通过RenderViewHost对象来完成的。</p>
+<h2 id="组件与接口"><a href="#组件与接口" class="headerlink" title="组件与接口"></a>组件与接口</h2><p>In the render process:</p>
+<ul>
+<li><em>RenderProcess</em>通过浏览器中和其对应的<em>RenderProcessHost</em>来处理 IPC。每个渲染进程只有一个RenderProcess对象。所有浏览器-渲染器之间都采用这种方式通信。</li>
+<li>RenderView 对象与浏览器进程中相应的 RenderView 和 WebKit 嵌入层通信（通过RenderProcess）。这个对象代表了一个网页在标签页或一个弹出窗口的内容。</li>
+</ul>
+<p>In the browser process:</p>
+<ul>
+<li>Browser 对象代表了顶级浏览器窗口</li>
+<li>RenderProcessHost 对象代表了浏览器端的浏览器与渲染器的IPC连接。在浏览器进程里，每个渲染进程有一个RenderProcessHost对象。</li>
+<li>RenderViewHost 对象封装与远程 RenderView 的通信，RenderWidgetHost 在浏览器中处理输入和 RenderWidget的绘制。</li>
+</ul>
+<h2 id="共享渲染过程"><a href="#共享渲染过程" class="headerlink" title="共享渲染过程"></a>共享渲染过程</h2><p>通常，每个新的 window 或标签页是在一个新进程里打开的。浏览器会生成一个新的进程，然后指导它去创建一个<em>RenderView</em>。但有时候在标签页或窗口之间共享渲染进程是有必要的。</p>
+<p>这些策略在<a target="_blank" rel="noopener" href="https://ahangchen.gitbooks.io/chromium_doc_zh/content/zh/General_Architecture/Process_Models.html">Process Models</a>里有阐述。</p>
+<h2 id="检测-Crash-OR-异常渲染"><a href="#检测-Crash-OR-异常渲染" class="headerlink" title="检测 Crash OR 异常渲染"></a>检测 Crash OR 异常渲染</h2><p>每个和浏览器进程通信的 IPC 都会检测进程的句柄，如果句柄是 signaled，则代表渲染进程 Crashed 相应的标签页也会收到 Crash 的信息。这是 Chromium 将显示一个 sad tab 屏幕，通知用户渲染器已崩溃，该页面可以通过按重新加载按钮或启动新的导航来重新加载。</p>
+<h2 id="Sandboxing-the-renderer"><a href="#Sandboxing-the-renderer" class="headerlink" title="Sandboxing the renderer"></a>Sandboxing the renderer</h2><p>renderer的进程被沙箱化，其权限进行了如下的限制：</p>
+<ul>
+<li>渲染器只能通过其父浏览器进程访问网络</li>
+<li>主机操作系统的内置权限限制了它对文件系统的访问</li>
+<li>rederer 进程运行在单独的Windows桌面上，该桌面对用户是不可见的。</li>
+<li>限制对用户的display 和 related对象的访问</li>
+</ul>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p>[1] <a target="_blank" rel="noopener" href="https://www.cntofu.com/book/101/zh/Start_Here_Background_Reading/Multi-process_Architecture.md">https://www.cntofu.com/book/101/zh/Start_Here_Background_Reading/Multi-process_Architecture.md</a></p>
+<p>[2] <a target="_blank" rel="noopener" href="https://ahangchen.gitbooks.io/chromium_doc_zh/content/zh/Start_Here_Background_Reading/Multi-process_Architecture.html">https://ahangchen.gitbooks.io/chromium_doc_zh/content/zh/Start_Here_Background_Reading/Multi-process_Architecture.html</a></p>
+<h1 id="如何显示网页"><a href="#如何显示网页" class="headerlink" title="如何显示网页"></a>如何显示网页</h1><h2 id="应用概念层"><a href="#应用概念层" class="headerlink" title="应用概念层"></a>应用概念层</h2><p><img src= "https://i.loli.net/2020/07/14/shCfncNLw9axrt8.gif" data-lazy-src="https://focu5.oss-accelerate.aliyuncs.com/blog/20210723160221.png"></p>
+<p>每个矩形代表一个应用概念层，每层之间互不相通，层与层之间也没有任何依赖关系。</p>
+<ul>
+<li>**WebKit:**：Safari，Chromium和其他所有基于 WebKit 的浏览器共享的渲染引擎。WebKit Port是WebKit的一个部分，用来集成平台独立的系统服务，比如资源加载与图像。</li>
+<li><strong>Glue:</strong> 将WebKit类型转换为Chromium类型。该层是 WebKit 的嵌入层。</li>
+<li><strong>Renderer / Render host:</strong> Chromium 多进程架构的嵌入层，代理通知，跨进程边界执行命令。</li>
+<li><strong>WebContents：</strong>一个可重用的组件，它是 Content 模块的主类。它易于嵌入，允许多进程将HTML绘制成View。</li>
+<li><strong>Browser:</strong> 浏览器窗口，它包含多个 WebContentses。</li>
+<li><strong>Tab Helpers</strong>: 可以附加到WebContents的各个对象（通过WebContentsUserData Mixin）。浏览器将这些独立对象中的一种绑定到WebContent给它持有（一个用于Favicons，一个用于infobars）</li>
+</ul>
+<h2 id="The-render-process"><a href="#The-render-process" class="headerlink" title="The render process"></a>The render process</h2><p><img src= "https://i.loli.net/2020/07/14/shCfncNLw9axrt8.gif" data-lazy-src="https://focu5.oss-accelerate.aliyuncs.com/blog/20210723170306.png"></p>
+<p>Chromium 的渲染进程通过 glue接口将 WebKit 端口嵌入。它的工作主要是作为渲染器端到浏览器的<a target="_blank" rel="noopener" href="https://ahangchen.gitbooks.io/chromium_doc_zh/content/zh//Start_Here_Background_Reading/General_Architecture">IPC</a>通道。</p>
+<p>reder 中最重要的类是<code>RenderView</code>，在 <code>/content/renderer/render_view_impl.cc</code>。这个对象代表一个 web 网页，处理浏览器进程之间的所有导航相关命令，派生于<code>RenderWidget</code>（RenderWidget 提供绘图和输入事件处理）。RenderView 通过全局 RenderProcess 对象与浏览器进程通信。</p>
+<blockquote>
+<p>RenderWidget 和 RenderView 之间的区别：</p>
+<p>RenderWidget 通过 glue 层(WebWidgetDelegate)的抽象接口映射到一个WebCore:：Widget对象。这基本是屏幕上的一个窗口，用于接收输入事件并在其中进行绘制。</p>
+<p>RenderView 继承自 RenderWidget，代表标签页或弹窗的内容。除了绘制与组件输入事件外，它还处理导航指令。只有一种情况下，RenderWidget可以在没有RenderView时存在，就是网页中的下拉选择框（select box）。下拉选择框必须用native window来渲染（因为其没有独立 web 网页）。</p>
+</blockquote>
+<h3 id="Threads-in-the-renderer"><a href="#Threads-in-the-renderer" class="headerlink" title="Threads in the renderer"></a>Threads in the renderer</h3><p>每个渲染器都有两个线程，The render thread is where the main objects such as the RenderView and all WebKit code run。当渲染器线程与浏览器通信时，消息首先被发送到主线程，然后主线程将消息发送到浏览器进程。除了这种方式，同样还允许我们从渲染器同步地向浏览器发送消息，这种情况一般发生在，需要浏览器返回的结果才能继续执行的事件。例如，在 JavaScript 请求获取页面的cookie时，渲染器线程会阻塞，主线程将对接收到的所有消息排队，直到找到正确的响应。在此期间接收到的任何消息，在这之后都会分配到渲染器线程以进行正常处理。</p>
+<h2 id="The-browser-process"><a href="#The-browser-process" class="headerlink" title="The browser process"></a>The browser process</h2><p><img src= "https://i.loli.net/2020/07/14/shCfncNLw9axrt8.gif" data-lazy-src="https://focu5.oss-accelerate.aliyuncs.com/blog/20210725225424.png"></p>
+<h3 id="Low-level-browser-process-objects"><a href="#Low-level-browser-process-objects" class="headerlink" title="Low-level browser process objects"></a>Low-level browser process objects</h3><p>所有 IPC 与渲染进程的通信都通过浏览器的 I/O线程来完成的，此线程还处理所有网络通信，以防止其干扰用户界面。</p>
+<p>当一个 RenderProcessHost 对象在主线程(用户界面运行的地方)完成初始化时，它会创造新的渲染器进程和一个ChannelProxy IPC对象(具有一个命名了的管道通向渲染器)，自动转发所有的消息回给UI线程的RenderProcessHost。该对象运行在浏览器的 I/O 线程上，监听渲染器的命名管道，并自动将所有消息转发回 UI 线程上的RenderProcessHost。ResourceMessageFilter 也将安装在此通道中，它将过滤掉某些可以直接在I/O线程上处理的消息，如网络请求。筛选的过程发生在 <code>ResourceMessageFilter::OnMessageReceived</code>。</p>
+<p>UI线程中的RenderProcessHost负责分发所有view相关消息给合适的 RenderViewHost（它自己处理有限数量的与非View特定的消息）此调度发生在RenderProcessHost:：OnMessageReceived中。</p>
+<h3 id="High-level-browser-process-objects"><a href="#High-level-browser-process-objects" class="headerlink" title="High-level browser process objects"></a>High-level browser process objects</h3><p>View-specific 信息源于RenderViewHost::OnMessageReceived。大多数消息都在这里处理，其余的转发到RenderWidgetHost基类。这两个对象映射到渲染器中的 RenderView 和 RenderWidget，每个平台都有一个View类以集成到native view系统。</p>
+<p>在RenderView / Widget上方是 WebContents 对象，大部分的消息结束于这个对象的函数调用。WebContents代表网页的内容，它是内容模块中的顶级对象，负责在一个矩形的view中展示网页。</p>
+<p>WebContents 对象包含在 TabContentsWrapper 中。在<code>chrome /</code>中，负责一个标签页。 </p>
+<h2 id="参考-1"><a href="#参考-1" class="headerlink" title="参考"></a>参考</h2><p>[1] <a target="_blank" rel="noopener" href="https://www.chromium.org/developers/design-documents/displaying-a-web-page-in-chrome">https://www.chromium.org/developers/design-documents/displaying-a-web-page-in-chrome</a></p>
+</div><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">燕乘风</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://0xfocu5.github.io/posts/d4e8f763/">https://0xfocu5.github.io/posts/d4e8f763/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://0xfocu5.github.io" target="_blank">0xfocu5's blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Chromium/">Chromium</a></div><div class="post_share"><div class="social-share" data-image="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/posts/28399a6/"><img class="prev-cover" data-lazy-src="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">Previous Post</div><div class="prev_info">Sandbox low-level-policy</div></div></a></div><div class="next-post pull-right"><a href="/posts/ee684c01/"><img class="next-cover" data-lazy-src="https://focu5.oss-accelerate.aliyuncs.com/blog/20200927102719.jpg" onerror="onerror=null;src='/img/404.jpg'"><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">Windows Mitigation</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> comment</span></div></div><div class="comment-wrap"><div><div class="vcomment" id="vcomment"></div></div></div></div></article></main><footer id="footer" data-type="color"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2021 By 燕乘风</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><section id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></section><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">search</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章" type="text"/></div></div></div><hr/><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="noopener" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fas fa-times"></i></span></div><div id="search-mask"></div><div><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/vanilla-lazyload/dist/lazyload.iife.min.js"></script><script src="/js/search/local-search.js"></script><div class="js-pjax"><script>function loadValine () {
+  function initValine () {
+    window.valine = new Valine({
+      el: '#vcomment',
+      appId: 'P9GVfs1MeERE7LeK2DFsJXmn-gzGzoHsz',
+      appKey: 'hzbjuPyWPjwk5HpiLPf3csE9',
+      placeholder: 'Please leave your footprints',
+      avatar: 'monsterid',
+      meta: 'nick,mail,link'.split(','),
+      pageSize: '10',
+      lang: 'en',
+      recordIP: false,
+      serverURLs: '',
+      emojiCDN: '',
+      emojiMaps: "",
+      enableQQ: false,
+      path: window.location.pathname,
+    });
+    if ('nick,mail') { valine.config.requiredFields= 'nick,mail'.split(',') }
+  }
+
+  if (typeof Valine === 'function') initValine() 
+  else $.getScript('https://cdn.jsdelivr.net/npm/valine/dist/Valine.min.js', initValine)
+}
+
+if ('Valine' === 'Valine' || !false) {
+  if (false) btf.loadComment(document.querySelector('#vcomment'),loadValine)
+  else setTimeout(() => loadValine(), 0)
+} else {
+  function loadOtherComment () {
+    loadValine()
+  }
+}</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><script src="/js/focu5.js"></script><script id="canvas_nest" defer="defer" color="0,0,255" opacity="0.7" zIndex="-1" count="100" mobile="true" src="/js/third-party/canvas-nest.js"></script><script src="/js/third-party/click_heart.js" async="async"></script></div></body></html>
